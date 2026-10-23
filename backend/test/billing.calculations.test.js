@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateBill, confirmedPaymentsForMonth, rateForServiceDate } from '../src/modules/billing/billing.calculations.js';
+import { calculateBill, confirmedPaymentsForMonth, effectivePaymentAmountPaise, rateForServiceDate } from '../src/modules/billing/billing.calculations.js';
+import { validatePaymentCorrectionInput } from '../src/modules/payments/payment-corrections.service.js';
 
 test('carries a prior unpaid balance into the next bill exactly once', () => {
   const october = calculateBill({
@@ -79,4 +80,44 @@ test('uses an effective customer rate and falls back to global pricing', () => {
   assert.equal(rateForServiceDate(rates, 'customer-a', '2026-11-01'), 7000);
   assert.equal(rateForServiceDate(rates, 'customer-b', '2026-10-20'), 6000);
   assert.equal(rateForServiceDate(rates, 'customer-c', '2026-10-20'), 8000);
+});
+
+test('uses the approved correction for billing and preserves the recorded amount', () => {
+  const payment = { amountPaise: 150000, correctedAmountPaise: 100000 };
+  const bill = calculateBill({
+    monthlyChargesPaise: 250000,
+    totalPaidPaise: effectivePaymentAmountPaise(payment)
+  });
+  assert.equal(payment.amountPaise, 150000);
+  assert.equal(payment.correctedAmountPaise, 100000);
+  assert.equal(bill.remainingBalancePaise, 150000);
+});
+
+test('uses the original payment amount when no correction was approved', () => {
+  assert.equal(effectivePaymentAmountPaise({ amountPaise: 150000, correctedAmountPaise: null }), 150000);
+});
+
+test('accepts a valid customer payment correction request', () => {
+  assert.deepEqual(validatePaymentCorrectionInput({
+    requestedAmountRupees: 1000,
+    reason: 'Actual transfer was ₹1,000.',
+    idempotencyKey: 'correction-key-123'
+  }), {
+    requestedAmountPaise: 100000,
+    explanation: 'Actual transfer was ₹1,000.',
+    key: 'correction-key-123'
+  });
+});
+
+test('rejects unsupported payment correction amounts', () => {
+  for (const amount of [-1, 0, 'not-a-number', 100.123]) {
+    assert.throws(
+      () => validatePaymentCorrectionInput({
+        requestedAmountRupees: amount,
+        reason: 'Correction reason',
+        idempotencyKey: 'correction-key-123'
+      }),
+      error => error.code === 'INVALID_CORRECTION_AMOUNT'
+    );
+  }
 });

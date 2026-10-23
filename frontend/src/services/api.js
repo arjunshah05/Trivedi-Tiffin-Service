@@ -26,6 +26,7 @@ export const api = {
   setTiffin: (date, meal, status) => request(`/tiffins/${date}/${meal}`, { method: 'PUT', body: JSON.stringify({ status }) }),
   payments: (month) => request(`/billing/payments?month=${encodeURIComponent(month)}`),
   submitPayment: (body) => request('/billing/payments', { method: 'POST', body: JSON.stringify(body) }),
+  requestPaymentCorrection: (paymentId, body) => request(`/billing/payments/${paymentId}/corrections`, { method: 'POST', body: JSON.stringify(body) }),
   currentRate: () => request('/pricing/current'),
   adminOverview: (month) => request(`/admin/overview?month=${encodeURIComponent(month)}`),
   adminCustomers: (search = '') => request(`/admin/customers?search=${encodeURIComponent(search)}`),
@@ -37,5 +38,8 @@ export const api = {
   setCustomerPricing: (id, amountRupees, effectiveFrom) => request(`/pricing/customers/${id}`, { method: 'POST', body: JSON.stringify({ amountRupees, effectiveFrom }) }),
   recordPayment: (id, body) => request(`/admin/payments/${id}`, { method: 'POST', body: JSON.stringify(body) }),
   reversePayment: (userId, paymentId, reason) => request(`/admin/payments/${userId}/${paymentId}/reverse`, { method: 'POST', body: JSON.stringify({ reason }) }),
-  customerPayments: (id, month) => request(`/admin/payments/customer/${id}?month=${encodeURIComponent(month)}`)
+  customerPayments: (id, month) => request(`/admin/payments/customer/${id}?month=${encodeURIComponent(month)}`),
+  pendingPaymentCorrections: () => request('/admin/payments/corrections/pending'),
+  approvePaymentCorrection: (userId, paymentId, correctionId) => request(`/admin/payments/${userId}/${paymentId}/corrections/${correctionId}/approve`, { method: 'POST' }),
+  rejectPaymentCorrection: (userId, paymentId, correctionId, reason) => request(`/admin/payments/${userId}/${paymentId}/corrections/${correctionId}/reject`, { method: 'POST', body: JSON.stringify({ reason }) })
 };

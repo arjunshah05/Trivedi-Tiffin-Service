@@ -24,6 +24,10 @@ export function confirmedPaymentsForMonth(payments, month) {
   );
 }
 
+export function effectivePaymentAmountPaise(payment) {
+  return payment.correctedAmountPaise ?? payment.amountPaise;
+}
+
 export function rateForServiceDate(rates, userId, serviceDate, defaultRatePaise = 7500) {
   const globalRates = rates.filter(rate => !rate.userId);
   const customerRates = rates.filter(rate => rate.userId && String(rate.userId) === String(userId));

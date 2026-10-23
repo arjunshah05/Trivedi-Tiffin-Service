@@ -18,6 +18,7 @@ Base: `/api/v1`. All successful responses use `{ "data": ... }`; errors use `{ "
 - `GET /billing/summary?month=YYYY-MM`
 - `GET /billing/payments?month=YYYY-MM`
 - `POST /billing/payments` — authenticated customers can record a payment against their own bill: `{ billingPeriod, amountRupees, method, reference?, note?, idempotencyKey }`. Customer submissions are immediately recorded as confirmed; amounts above the current due are carried as credit to the next month. This endpoint records a payment already made and does not process money.
+- `POST /billing/payments/:paymentId/corrections` — authenticated customers can request a correction for their own confirmed payment: `{ requestedAmountRupees, reason, idempotencyKey }`. Requests do not change billing until an admin approves.
 - `GET /pricing/current`
 
 Billing summaries include `monthlyChargesPaise`, `openingOutstandingPaise`, `openingCreditPaise`, `totalDuePaise`, `totalPaidPaise`, `remainingBalancePaise`, `creditCarriedForwardPaise`, and `paymentStatus` (`UNPAID`, `PARTIALLY_PAID`, or `PAID`). Monthly bill snapshots are persisted separately from payment transactions. Unpaid balances and overpayment credits are carried into the next month once.
@@ -36,3 +37,8 @@ Billing summaries include `monthlyChargesPaise`, `openingOutstandingPaise`, `ope
 - `GET /admin/payments/customer/:userId?month=YYYY-MM` (or `?year=YYYY`)
 
 Payment history includes completed and reversed transactions. Reversals require a reason and are excluded from billing calculations.
+- `GET /admin/payments/corrections/pending` — list all pending customer payment correction requests.
+- `POST /admin/payments/:userId/:paymentId/corrections/:correctionId/approve` — approve a pending request and recalculate the bill.
+- `POST /admin/payments/:userId/:paymentId/corrections/:correctionId/reject` — `{ reason }`; reject a request with an audited reason.
+
+Correction requests and their audit details are stored on the original payment record. The originally recorded `amountPaise` is preserved; only an approved `correctedAmountPaise` is used for billing. Every request retains its reason, requester, requested amount and timestamp, decision, reviewer, and decision timestamp. One pending request is allowed per payment, enforced by an atomic conditional update. Decisions are also atomic, so a request cannot be approved or rejected twice.

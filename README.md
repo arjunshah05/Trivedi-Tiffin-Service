@@ -15,6 +15,7 @@ Package versions are pinned to stable release lines available at project creatio
 
 ## Features
 
+- Public responsive landing page for Trivedi Tiffin Service in Moradabad
 - Customer registration and login
 - Customer dashboard with current/previous month summary
 - Calendar-based lunch and dinner tracking
@@ -78,7 +79,7 @@ This is a substantial working starter, not a substitute for production QA or sec
 - Use HTTPS and a secure same-site deployment strategy.
 - Set `NODE_ENV=production`, a long random secret, and exact `CLIENT_ORIGIN`.
 - Add password reset/email verification and operational account recovery.
-- Add audit logging and payment reversal/adjustment workflow.
+- Extend operational audit logging to administrative actions outside payment records.
 - Confirm business policy for historical edits, rate changes, and month closing.
 - Add automated tests and run `npm audit` in both packages.
 - Configure backups, restore tests, monitoring, and alerting.
@@ -98,7 +99,9 @@ Frontend:
 - `npm run preview` — preview production build
 
 Backend tests:
-- `npm test` — run billing calculation and balance carry-forward tests
+- `npm test` — run billing, balance carry-forward, and approved-payment correction tests
+
+Payment corrections are embedded in the original payment record; no data migration is required. Restart the backend so Mongoose registers the updated payment schema and index.
 
 ## Project layout
 

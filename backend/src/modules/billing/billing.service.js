@@ -2,7 +2,7 @@ import { TiffinEntry } from '../tiffins/TiffinEntry.js';
 import { PricingRate } from '../pricing/PricingRate.js';
 import { Payment } from '../payments/Payment.js';
 import { MonthlyBill } from './MonthlyBill.js';
-import { calculateBill, confirmedPaymentsForMonth, rateForServiceDate } from './billing.calculations.js';
+import { calculateBill, confirmedPaymentsForMonth, effectivePaymentAmountPaise, rateForServiceDate } from './billing.calculations.js';
 import { parseMonth } from '../../shared/date.js';
 
 function monthAfter(month) {
@@ -37,7 +37,10 @@ export async function getBillingSummary(userId, month) {
   const paymentsByMonth = new Map();
   for (const payment of payments) {
     if (payment.status !== 'CONFIRMED') continue;
-    paymentsByMonth.set(payment.billingPeriod, (paymentsByMonth.get(payment.billingPeriod) || 0) + payment.amountPaise);
+    paymentsByMonth.set(
+      payment.billingPeriod,
+      (paymentsByMonth.get(payment.billingPeriod) || 0) + effectivePaymentAmountPaise(payment)
+    );
   }
   const existingByMonth = new Map(existingBills.map(bill => [bill.billingPeriod, bill]));
   const firstMonth = [

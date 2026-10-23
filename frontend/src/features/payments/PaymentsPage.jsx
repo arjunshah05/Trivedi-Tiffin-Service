@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Wallet, ReceiptText, CalendarDays } from 'lucide-react';
 import AppShell from '../../components/AppShell';
 import StatCard from '../../components/StatCard';
@@ -17,7 +17,12 @@ export default function PaymentsPage() {
   const [method, setMethod] = useState('UPI');
   const [reference, setReference] = useState('');
   const [note, setNote] = useState('');
+  const [correctionPaymentId, setCorrectionPaymentId] = useState('');
+  const [correctionAmount, setCorrectionAmount] = useState('');
+  const [correctionReason, setCorrectionReason] = useState('');
+  const [correctionSaving, setCorrectionSaving] = useState(false);
   const requestKey = useRef(null);
+  const correctionRequestKey = useRef(null);
   useEffect(()=>{
     let active = true;
     setLoading(true); setError('');
@@ -54,6 +59,37 @@ export default function PaymentsPage() {
     } finally {
       setSaving(false);
     }
+    async function submitCorrection(event, payment) {
+      event.preventDefault();
+      setError('');
+      setMessage('');
+      setCorrectionSaving(true);
+      correctionRequestKey.current ||= crypto.randomUUID();
+      try {
+        await api.requestPaymentCorrection(payment._id, {
+          requestedAmountRupees: Number(correctionAmount),
+          reason: correctionReason,
+          idempotencyKey: correctionRequestKey.current
+        });
+        correctionRequestKey.current = null;
+        setCorrectionPaymentId('');
+        setCorrectionAmount('');
+        setCorrectionReason('');
+        const result = await api.payments(month);
+        setPayments(result.payments);
+        setMessage('Correction request submitted. An administrator will review it.');
+      } catch (requestError) {
+        setError(requestError.message);
+      } finally {
+        setCorrectionSaving(false);
+      }
+    }
+    function openCorrection(payment) {
+      setCorrectionPaymentId(payment._id);
+      setCorrectionAmount(String(((payment.correctedAmountPaise ?? payment.amountPaise) / 100).toFixed(2)));
+      setCorrectionReason('');
+      correctionRequestKey.current = null;
+    }
   }
   return <AppShell><div className="page-heading"><div><span className="eyebrow">PAYMENT RECORDS</span><h1>Billing & payments</h1><p>Review your monthly charges, payments, and remaining balance.</p></div><label className="month-input">Billing month<input type="month" value={month} onChange={e=>setMonth(e.target.value)}/></label></div>
     {error&&<div className="alert error">{error}</div>}
@@ -72,7 +108,15 @@ export default function PaymentsPage() {
     </section>
     <section className="panel table-panel"><div className="panel-head"><div><span className="eyebrow">TRANSACTION HISTORY</span><h2>{monthLabel(month)}</h2></div><span className="count-pill">{payments.length} records</span></div>
       {loading?<div className="empty-state" role="status">Loading billing and payment history…</div>:payments.length===0?<div className="empty-state"><div className="empty-icon"><Wallet/></div><b>No payments recorded for this month</b><p>When the administrator records a payment, it will appear here.</p></div>:
-      <div className="table-wrap"><table><thead><tr><th>Payment date & time</th><th>Bill month</th><th>Method</th><th>Reference / notes</th><th>Status</th><th className="align-right">Amount</th></tr></thead><tbody>{payments.map(p=><tr key={p._id}><td>{new Date(p.paidAt).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td>{monthLabel(p.billingPeriod)}</td><td><span className="method-tag">{p.method.replace('_',' ')}</span></td><td>{[p.reference,p.note,p.status==='REVERSED'?p.reversalReason:''].filter(Boolean).join(' · ')||'—'}</td><td><span className={`status-tag ${p.status==='CONFIRMED'?'success':'danger'}`}>{p.status==='CONFIRMED'?'COMPLETED':'REVERSED'}</span></td><td className="align-right amount-cell">{money(p.amountPaise)}</td></tr>)}</tbody></table></div>}
+      <div className="table-wrap"><table><thead><tr><th>Payment date & time</th><th>Bill month</th><th>Method</th><th>Reference / notes</th><th>Status / correction</th><th className="align-right">Amount</th><th></th></tr></thead><tbody>{payments.map(p=>{
+        const corrections=p.correctionRequests||[];
+        const pending=corrections.some(correction=>correction.status==='PENDING');
+        const effectiveAmount=p.correctedAmountPaise??p.amountPaise;
+        return <Fragment key={p._id}><tr><td>{new Date(p.paidAt).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</td><td>{monthLabel(p.billingPeriod)}</td><td><span className="method-tag">{p.method.replace('_',' ')}</span></td><td>{[p.reference,p.note,p.status==='REVERSED'?p.reversalReason:''].filter(Boolean).join(' · ')||'—'}</td><td><span className={`status-tag ${p.status==='CONFIRMED'?'success':'danger'}`}>{p.status==='CONFIRMED'?'COMPLETED':'REVERSED'}</span>{corrections.map(correction=><div key={correction._id}><span className={`status-tag ${correction.status==='APPROVED'?'success':correction.status==='REJECTED'?'danger':'warning'}`}>CORRECTION {correction.status}</span></div>)}</td><td className="align-right amount-cell">{p.correctedAmountPaise!=null&&<small><s>{money(p.amountPaise)}</s><br/></small>}{money(effectiveAmount)}</td><td>{p.status==='CONFIRMED'&&!pending&&<button className="button small secondary" onClick={()=>openCorrection(p)}>Request correction</button>}</td></tr>
+          {corrections.map(correction=><tr key={correction._id}><td colSpan="7"><div className="payment-correction-audit"><b>Correction {correction.status.toLowerCase()}</b><span>Original: {money(correction.originalAmountPaise)} · Requested: {money(correction.requestedAmountPaise)}{correction.status==='APPROVED'?` · Corrected: ${money(correction.requestedAmountPaise)}`:''}</span><span>Payment status: {correction.previousPaymentStatus} → {correction.updatedPaymentStatus||correction.previousPaymentStatus}</span><span>Reason: {correction.reason}</span><span>Requested by {correction.requestedBy?.fullName||'you'} on {new Date(correction.requestedAt).toLocaleString('en-IN')}</span>{correction.reviewedAt&&<span>{correction.status} by {correction.reviewedBy?.fullName||'admin'} on {new Date(correction.reviewedAt).toLocaleString('en-IN')}{correction.decisionReason?` · ${correction.decisionReason}`:''}</span>}</div></td></tr>)}
+          {correctionPaymentId===p._id&&<tr><td colSpan="7"><form className="form-stack compact-form" onSubmit={event=>submitCorrection(event,p)}><b>Request payment correction</b><label>Correct amount (₹)<input type="number" min="0.01" max="10000000" step="0.01" required value={correctionAmount} onChange={event=>{setCorrectionAmount(event.target.value);correctionRequestKey.current=null;}}/></label><label>Reason for correction<textarea required minLength="3" maxLength="500" rows="3" value={correctionReason} onChange={event=>{setCorrectionReason(event.target.value);correctionRequestKey.current=null;}} placeholder="Explain why this payment amount needs correction"/></label><div><button className="button primary small" disabled={correctionSaving}>{correctionSaving?'Submitting…':'Submit request'}</button> <button className="button secondary small" type="button" onClick={()=>setCorrectionPaymentId('')}>Cancel</button></div></form></td></tr>}
+        </Fragment>;
+      })}</tbody></table></div>}
     </section>
     <div className="notice"><b>Note:</b> Payment entries are separate from your bill. Reversed transactions remain visible in the payment history.</div>
   </AppShell>;

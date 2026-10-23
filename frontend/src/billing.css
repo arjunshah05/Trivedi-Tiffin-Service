@@ -1,1 +1,5 @@
 .status-tag.warning{background:#fff7e6;color:#946200}
+.form-stack textarea{width:100%;padding:12px 13px;border:1px solid #dfe7df;border-radius:9px;background:#fff;color:#23382c;outline:none;font-size:12px;resize:vertical}
+.form-stack textarea:focus{border-color:#65a77e;box-shadow:0 0 0 3px #e3f2e8}
+.payment-correction-audit{display:grid;gap:5px;margin:8px 0;padding:11px 13px;border-left:3px solid #d49a45;border-radius:7px;background:#fff9ef;color:#655b49;font-size:11px;line-height:1.55}
+.payment-correction-audit b{color:#4c4539}
