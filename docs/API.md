@@ -17,9 +17,10 @@ Base: `/api/v1`. All successful responses use `{ "data": ... }`; errors use `{ "
 - `GET /billing/dashboard?month=YYYY-MM` — current and previous month summaries.
 - `GET /billing/summary?month=YYYY-MM`
 - `GET /billing/payments?month=YYYY-MM`
+- `POST /billing/payments` — authenticated customers can record a payment against their own bill: `{ billingPeriod, amountRupees, method, reference?, note?, idempotencyKey }`. Customer submissions are immediately recorded as confirmed; amounts above the current due are carried as credit to the next month. This endpoint records a payment already made and does not process money.
 - `GET /pricing/current`
 
-Billing summaries include `monthlyChargesPaise`, `openingOutstandingPaise`, `totalDuePaise`, `totalPaidPaise`, `remainingBalancePaise`, and `paymentStatus` (`UNPAID`, `PARTIALLY_PAID`, or `PAID`). Monthly bill snapshots are persisted separately from payment transactions. The preceding month's remaining balance is carried forward once.
+Billing summaries include `monthlyChargesPaise`, `openingOutstandingPaise`, `openingCreditPaise`, `totalDuePaise`, `totalPaidPaise`, `remainingBalancePaise`, `creditCarriedForwardPaise`, and `paymentStatus` (`UNPAID`, `PARTIALLY_PAID`, or `PAID`). Monthly bill snapshots are persisted separately from payment transactions. Unpaid balances and overpayment credits are carried into the next month once.
 
 ## Administrator
 - `GET /admin/overview?month=YYYY-MM`
@@ -28,7 +29,9 @@ Billing summaries include `monthlyChargesPaise`, `openingOutstandingPaise`, `tot
 - `PATCH /admin/customers/:userId/status` — `{ status: "ACTIVE" | "INACTIVE" }`
 - `GET /admin/pricing`
 - `POST /pricing` — `{ amountRupees, effectiveFrom }` (admin-only)
-- `POST /admin/payments/:userId` — `{ billingPeriod, amountRupees, method, paidAt?, reference?, note?, idempotencyKey }`. Amounts cannot exceed the outstanding balance for that bill. A unique idempotency key is required per payment form submission.
+- `GET /pricing/customers/:userId` — customer-specific rate history (admin-only).
+- `POST /pricing/customers/:userId` — `{ amountRupees, effectiveFrom }`; sets a customer-specific rate (admin-only), overriding the global rate from its effective date.
+- `POST /admin/payments/:userId` — `{ billingPeriod, amountRupees, method, paidAt?, reference?, note?, idempotencyKey }`. Amounts above the current due are carried as credit to the next month. A unique idempotency key is required per payment form submission.
 - `POST /admin/payments/:userId/:paymentId/reverse` — `{ reason }`; reverses a confirmed payment while retaining its audit record.
 - `GET /admin/payments/customer/:userId?month=YYYY-MM` (or `?year=YYYY`)
 

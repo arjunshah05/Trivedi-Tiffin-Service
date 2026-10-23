@@ -1,0 +1,5 @@
+.password-input-wrap{position:relative;width:100%}
+.password-input-wrap input{padding-right:46px!important}
+.password-visibility{position:absolute;top:50%;right:8px;display:grid;place-items:center;width:32px;height:32px;padding:0;transform:translateY(-50%);border:0;border-radius:7px;background:transparent;color:#66766c}
+.password-visibility:hover{background:#f0f5f1;color:#216e52}
+.password-visibility:focus-visible{outline:2px solid #65a77e;outline-offset:1px}

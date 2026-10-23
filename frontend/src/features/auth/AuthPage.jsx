@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { UtensilsCrossed, ArrowRight, ShieldCheck } from 'lucide-react';
+import { UtensilsCrossed, ArrowRight, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../app/AuthContext';
 
 export default function AuthPage({ mode = 'login' }) {
@@ -10,6 +10,7 @@ export default function AuthPage({ mode = 'login' }) {
   const [form, setForm] = useState({ fullName: '', email: '', phone: '', password: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   if (user) return <Navigate to={user.role === 'ADMIN' ? '/admin' : '/dashboard'} replace />;
   const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
   async function submit(e) {
@@ -26,7 +27,7 @@ export default function AuthPage({ mode = 'login' }) {
         {isRegister && <label>Full name<input name="fullName" value={form.fullName} onChange={change} required minLength="2" autoComplete="name" placeholder="Your full name"/></label>}
         <label>Email address<input name="email" type="email" value={form.email} onChange={change} required autoComplete="email" placeholder="you@example.com"/></label>
         {isRegister && <label>Phone number <span className="optional">Optional</span><input name="phone" value={form.phone} onChange={change} autoComplete="tel" placeholder="+91"/></label>}
-        <label>Password<input name="password" type="password" value={form.password} onChange={change} required minLength={isRegister ? 10 : 1} autoComplete={isRegister ? 'new-password' : 'current-password'} placeholder={isRegister ? 'At least 10 characters' : 'Enter your password'}/></label>
+        <label>Password<div className="password-input-wrap"><input name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={change} required minLength={isRegister ? 10 : 1} autoComplete={isRegister ? 'new-password' : 'current-password'} placeholder={isRegister ? 'At least 10 characters' : 'Enter your password'}/><button className="password-visibility" type="button" onClick={()=>setShowPassword(value=>!value)} aria-label={showPassword?'Hide password':'Show password'} aria-pressed={showPassword}>{showPassword?<EyeOff size={18}/>:<Eye size={18}/>}</button></div></label>
         {error && <div className="alert error">{error}</div>}
         <button className="button primary full" disabled={busy}>{busy ? 'Please wait…' : isRegister ? 'Create account' : 'Sign in'} <ArrowRight size={17}/></button>
       </form><p className="auth-switch">{isRegister ? 'Already have an account?' : 'New to Trivedi Tiffin Service?'} <Link to={isRegister ? '/login' : '/register'}>{isRegister ? 'Sign in' : 'Create an account'}</Link></p><p className="fine-print">By continuing, you agree to use this service responsibly. Contact the administrator for account support.</p>

@@ -26,7 +26,10 @@ if (!admin) {
   console.info(`Admin account already exists: ${admin.email}`);
 }
 const today = new Date().toISOString().slice(0, 10);
-const rateExists = await PricingRate.findOne({ effectiveFrom: today });
+const rateExists = await PricingRate.findOne({
+  effectiveFrom: today,
+  $or: [{ userId: null }, { userId: { $exists: false } }]
+});
 if (!rateExists) {
   await PricingRate.create({ amountPaise: Math.round(env.defaultPriceRupees * 100), effectiveFrom: today, createdBy: admin._id });
   console.info(`Created initial rate ₹${env.defaultPriceRupees} effective ${today}`);

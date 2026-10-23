@@ -3,7 +3,7 @@ import { CalendarDays, IndianRupee, Wallet, Utensils, ArrowUpRight, ArrowDownRig
 import AppShell from '../../components/AppShell';
 import StatCard from '../../components/StatCard';
 import { api } from '../../services/api';
-import { money, currentMonth, previousMonth, monthLabel } from '../../utils/format';
+import { money, balanceMoney, currentMonth, previousMonth, monthLabel } from '../../utils/format';
 import { Link } from 'react-router-dom';
 
 export default function DashboardPage() {
@@ -24,7 +24,7 @@ export default function DashboardPage() {
       <StatCard label="Tiffins this month" value={current?.totalTiffins ?? '—'} hint={`${current?.lunchCount ?? 0} lunch · ${current?.dinnerCount ?? 0} dinner`} icon={Utensils} tone="green"/>
       <StatCard label="This month’s charge" value={money(current?.chargePaise)} hint="Based on meals marked received" icon={IndianRupee} tone="blue"/>
       <StatCard label="Paid this month" value={money(current?.paidPaise)} hint={`${current?.paymentsCount ?? 0} payment record(s)`} icon={Wallet} tone="orange"/>
-      <StatCard label="Balance remaining" value={money(current?.balancePaise)} hint={current?.balancePaise > 0 ? 'Amount currently due' : 'No outstanding amount'} icon={CalendarDays} tone="purple"/>
+      <StatCard label="Balance remaining" value={balanceMoney(current?.balancePaise)} hint={current?.balancePaise > 0 ? 'Amount currently due' : current?.creditCarriedForwardPaise > 0 ? `${money(current.creditCarriedForwardPaise)} credit for next month` : 'No outstanding amount'} icon={CalendarDays} tone="purple"/>
     </div>
     <div className="dashboard-grid">
       <section className="panel monthly-panel"><div className="panel-head"><div><span className="eyebrow">MONTHLY BREAKDOWN</span><h2>{monthLabel(month)}</h2></div><Link className="text-link" to="/calendar">Open calendar <ArrowUpRight size={15}/></Link></div>
@@ -35,7 +35,7 @@ export default function DashboardPage() {
       </section>
       <section className="panel previous-panel"><div className="panel-head"><div><span className="eyebrow">PREVIOUS MONTH</span><h2>{monthLabel(previousMonth(month))}</h2></div><div className="round-icon"><ArrowDownRight size={18}/></div></div>
         <div className="previous-amount">{money(previous?.totalDuePaise)}</div><p className="muted">Total due including any opening balance</p>
-        <div className="mini-stats"><div><small>Tiffins</small><b>{previous?.totalTiffins ?? '—'}</b></div><div><small>Paid</small><b>{money(previous?.paidPaise)}</b></div><div><small>Remaining</small><b>{money(previous?.balancePaise)}</b></div></div>
+        <div className="mini-stats"><div><small>Tiffins</small><b>{previous?.totalTiffins ?? '—'}</b></div><div><small>Paid</small><b>{money(previous?.paidPaise)}</b></div><div><small>Remaining</small><b>{balanceMoney(previous?.balancePaise)}</b></div></div>
         <Link className="button secondary full" to="/payments">View payment history</Link>
       </section>
     </div>

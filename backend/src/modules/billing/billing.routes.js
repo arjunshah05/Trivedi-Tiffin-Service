@@ -4,9 +4,22 @@ import { asyncHandler } from '../../shared/asyncHandler.js';
 import { getBillingSummary } from './billing.service.js';
 import { Payment } from '../payments/Payment.js';
 import { parseMonth } from '../../shared/date.js';
+import { ApiError } from '../../shared/ApiError.js';
+import { createConfirmedPayment } from '../payments/payment.service.js';
 
 const router = Router();
 router.use(requireAuth);
+router.post('/payments', asyncHandler(async (req, res) => {
+  if (req.user.role !== 'CUSTOMER') {
+    throw new ApiError(403, 'Only customer accounts can submit their own payments.', 'FORBIDDEN');
+  }
+  const result = await createConfirmedPayment({
+    userId: req.user._id,
+    actorId: req.user._id,
+    input: req.body
+  });
+  res.status(result.created ? 201 : 200).json({ data: { payment: result.payment } });
+}));
 router.get('/summary', asyncHandler(async (req, res) => {
   const month = String(req.query.month || new Date().toISOString().slice(0, 7));
   const summary = await getBillingSummary(req.user._id, month);

@@ -22,6 +22,7 @@ Package versions are pinned to stable release lines available at project creatio
 - Configurable per-tiffin price
 - Admin customer list and overview
 - Admin manual payment entry (cash/UPI/bank transfer/other)
+- Customer self-recorded completed payments with transaction references and notes
 - Payment history and remaining balance calculation
 - Role-based access control
 - Modular frontend feature folders and backend modules
@@ -57,11 +58,14 @@ Set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `backend/.env`, then ru
 
 - Only `RECEIVED` meals count toward charges.
 - A tiffin is a meal: lunch and dinner are counted independently.
-- The default rate is stored in the `PricingRate` collection; admin can update it.
-- Monthly charges are the sum of received meals at the rate effective on each meal's date. Lunch and dinner are charged separately.
+- The default rate is stored in the `PricingRate` collection; admins can update it globally or set a customer-specific rate from that customer's admin account.
+- Customer-specific rates override the default rate from their effective date. Only admins can configure prices; customers can view their applicable rate.
+- Monthly charges are the sum of received meals at the rate effective for that user on each meal's date. Lunch and dinner are charged separately.
 - Monthly bill snapshots are stored separately from payments. Each bill records its monthly charges, opening outstanding balance, adjustments, total due, payments, remaining balance, and payment status.
 - `total due = opening outstanding + monthly charges + adjustments`; the previous month's remaining balance becomes the next month's opening balance exactly once.
+- Payments may exceed the selected month's due. The full transaction remains recorded, the selected bill is marked paid, and the excess becomes an account credit applied once against the next month's charges.
 - Payments are separate ledger records and never reduce the original meal charges. Confirmed payments reduce the selected month's cumulative amount due; reversed transactions remain in the audit history and no longer count toward the bill.
+- Customers can record payments from Billing & payments. These self-reported payments are immediately marked completed and reduce the selected bill; this records a payment already made but does not process or verify a bank/UPI transfer. An administrator can reverse an incorrect record with a reason.
 - Payment amounts are validated against the outstanding balance. Admin payment requests use idempotency keys to avoid duplicate submissions. Completed payments can be reversed by an administrator with a required reason.
 - Bill status is Unpaid, Partially Paid, or Paid based on total due and confirmed payments. Payment history can be filtered by month (including year).
 - Amounts are stored as integer paise, avoiding floating-point currency calculations.
@@ -75,7 +79,7 @@ This is a substantial working starter, not a substitute for production QA or sec
 - Set `NODE_ENV=production`, a long random secret, and exact `CLIENT_ORIGIN`.
 - Add password reset/email verification and operational account recovery.
 - Add audit logging and payment reversal/adjustment workflow.
-- Confirm business policy for historical edits, rate changes, month closing, and overpayments.
+- Confirm business policy for historical edits, rate changes, and month closing.
 - Add automated tests and run `npm audit` in both packages.
 - Configure backups, restore tests, monitoring, and alerting.
 - Review cookie/CSRF behavior for your exact production domain architecture.

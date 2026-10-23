@@ -1,4 +1,5 @@
 export const money = (paise = 0) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(paise / 100);
+export const balanceMoney = (paise = 0) => money(Math.max(0, Number(paise) || 0));
 export const monthLabel = (month) => new Date(`${month}-01T00:00:00`).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 export const todayISO = () => {
   const now = new Date();

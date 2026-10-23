@@ -25,6 +25,7 @@ export const api = {
   tiffins: (month) => request(`/tiffins?month=${encodeURIComponent(month)}`),
   setTiffin: (date, meal, status) => request(`/tiffins/${date}/${meal}`, { method: 'PUT', body: JSON.stringify({ status }) }),
   payments: (month) => request(`/billing/payments?month=${encodeURIComponent(month)}`),
+  submitPayment: (body) => request('/billing/payments', { method: 'POST', body: JSON.stringify(body) }),
   currentRate: () => request('/pricing/current'),
   adminOverview: (month) => request(`/admin/overview?month=${encodeURIComponent(month)}`),
   adminCustomers: (search = '') => request(`/admin/customers?search=${encodeURIComponent(search)}`),
@@ -32,6 +33,8 @@ export const api = {
   setCustomerStatus: (id, status) => request(`/admin/customers/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   pricing: () => request('/admin/pricing'),
   setPricing: (amountRupees, effectiveFrom) => request('/pricing', { method: 'POST', body: JSON.stringify({ amountRupees, effectiveFrom }) }),
+  customerPricing: (id) => request(`/pricing/customers/${id}`),
+  setCustomerPricing: (id, amountRupees, effectiveFrom) => request(`/pricing/customers/${id}`, { method: 'POST', body: JSON.stringify({ amountRupees, effectiveFrom }) }),
   recordPayment: (id, body) => request(`/admin/payments/${id}`, { method: 'POST', body: JSON.stringify(body) }),
   reversePayment: (userId, paymentId, reason) => request(`/admin/payments/${userId}/${paymentId}/reverse`, { method: 'POST', body: JSON.stringify({ reason }) }),
   customerPayments: (id, month) => request(`/admin/payments/customer/${id}?month=${encodeURIComponent(month)}`)

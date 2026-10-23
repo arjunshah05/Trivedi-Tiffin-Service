@@ -2,7 +2,7 @@ import { TiffinEntry } from '../tiffins/TiffinEntry.js';
 import { PricingRate } from '../pricing/PricingRate.js';
 import { Payment } from '../payments/Payment.js';
 import { MonthlyBill } from './MonthlyBill.js';
-import { calculateBill, confirmedPaymentsForMonth } from './billing.calculations.js';
+import { calculateBill, confirmedPaymentsForMonth, rateForServiceDate } from './billing.calculations.js';
 import { parseMonth } from '../../shared/date.js';
 
 function monthAfter(month) {
@@ -21,7 +21,10 @@ export async function getBillingSummary(userId, month) {
   const { end } = parseMonth(month);
   const [entries, rates, payments, existingBills] = await Promise.all([
     TiffinEntry.find({ userId, serviceDate: { $lte: end }, status: 'RECEIVED' }).lean(),
-    PricingRate.find({ effectiveFrom: { $lte: end } }).sort({ effectiveFrom: 1 }).lean(),
+    PricingRate.find({
+      effectiveFrom: { $lte: end },
+      $or: [{ userId }, { userId: null }, { userId: { $exists: false } }]
+    }).sort({ effectiveFrom: 1, createdAt: 1, _id: 1 }).lean(),
     Payment.find({ userId, billingPeriod: { $lte: month } }).lean(),
     MonthlyBill.find({ userId, billingPeriod: { $lte: month } }).lean()
   ]);
@@ -45,6 +48,7 @@ export async function getBillingSummary(userId, month) {
   ].sort()[0];
   const periods = monthsBetween(firstMonth, month);
   let openingOutstandingPaise = 0;
+  let openingCreditPaise = 0;
   let currentBill;
 
   for (const period of periods) {
@@ -56,14 +60,14 @@ export async function getBillingSummary(userId, month) {
     for (const entry of periodEntries) {
       if (entry.mealType === 'LUNCH') lunchCount++;
       if (entry.mealType === 'DINNER') dinnerCount++;
-      const applicableRate = [...rates].reverse().find(rate => rate.effectiveFrom <= entry.serviceDate);
-      monthlyChargesPaise += applicableRate?.amountPaise ?? rates[0]?.amountPaise ?? 7500;
+      monthlyChargesPaise += rateForServiceDate(rates, userId, entry.serviceDate);
     }
 
     const adjustmentsPaise = existingByMonth.get(period)?.adjustmentsPaise || 0;
     const totalPaidPaise = paymentsByMonth.get(period) || 0;
     const calculation = calculateBill({
       openingOutstandingPaise,
+      openingCreditPaise,
       monthlyChargesPaise,
       adjustmentsPaise,
       totalPaidPaise
@@ -76,10 +80,12 @@ export async function getBillingSummary(userId, month) {
           dinnerCount,
           monthlyChargesPaise,
           openingOutstandingPaise,
+          openingCreditPaise,
           adjustmentsPaise,
           totalDuePaise: calculation.totalDuePaise,
           totalPaidPaise,
           remainingBalancePaise: calculation.remainingBalancePaise,
+          creditCarriedForwardPaise: calculation.creditCarriedForwardPaise,
           paymentStatus: calculation.paymentStatus,
           calculatedAt: new Date()
         }
@@ -88,6 +94,7 @@ export async function getBillingSummary(userId, month) {
     ).lean();
 
     openingOutstandingPaise = bill.remainingBalancePaise;
+    openingCreditPaise = bill.creditCarriedForwardPaise;
     if (period === month) currentBill = bill;
   }
 
@@ -100,12 +107,14 @@ export async function getBillingSummary(userId, month) {
     chargePaise: currentBill.monthlyChargesPaise,
     monthlyChargesPaise: currentBill.monthlyChargesPaise,
     openingOutstandingPaise: currentBill.openingOutstandingPaise,
+    openingCreditPaise: currentBill.openingCreditPaise,
     adjustmentsPaise: currentBill.adjustmentsPaise,
     totalDuePaise: currentBill.totalDuePaise,
     paidPaise: currentBill.totalPaidPaise,
     totalPaidPaise: currentBill.totalPaidPaise,
     balancePaise: currentBill.remainingBalancePaise,
     remainingBalancePaise: currentBill.remainingBalancePaise,
+    creditCarriedForwardPaise: currentBill.creditCarriedForwardPaise,
     paymentStatus: currentBill.paymentStatus,
     paymentsCount: monthPayments.length
   };
