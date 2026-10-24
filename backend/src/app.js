@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -21,7 +22,14 @@ app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 
-app.get('/api/health', (req, res) => res.json({ status: 'ok', service: 'trivedi-tiffin-api' }));
+app.get('/api/health', (req, res) => {
+	const databaseConnected = mongoose.connection.readyState === 1;
+	res.status(databaseConnected ? 200 : 503).json({
+		status: databaseConnected ? 'ok' : 'unavailable',
+		service: 'trivedi-tiffin-api',
+		database: databaseConnected ? 'connected' : 'disconnected'
+	});
+});
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false });
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/tiffins', tiffinRoutes);
