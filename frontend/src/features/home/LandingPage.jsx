@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../app/AuthContext';
 import {
   ArrowRight,
   CalendarCheck,
@@ -53,6 +54,8 @@ const services = [
 
 export function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useAuth();
+  const workspacePath = user?.role === 'ADMIN' ? '/admin' : '/dashboard';
 
   return (
     <section className="landing-hero" id="home">
@@ -73,8 +76,14 @@ export function Home() {
         <nav className={`landing-nav-links${menuOpen ? ' is-open' : ''}`} aria-label="Main navigation">
           <a href="#home" onClick={() => setMenuOpen(false)}>Home</a>
           <a href="#services" onClick={() => setMenuOpen(false)}>Services</a>
-          <Link to="/login" onClick={() => setMenuOpen(false)}>Login</Link>
-          <Link className="landing-nav-signup" to="/register" onClick={() => setMenuOpen(false)}>Signup <ArrowRight size={15}/></Link>
+          {user ? (
+            <Link className="landing-nav-signup" to={workspacePath} onClick={() => setMenuOpen(false)}>Dashboard <ArrowRight size={15}/></Link>
+          ) : (
+            <>
+              <Link to="/login" onClick={() => setMenuOpen(false)}>Login</Link>
+              <Link className="landing-nav-signup" to="/register" onClick={() => setMenuOpen(false)}>Signup <ArrowRight size={15}/></Link>
+            </>
+          )}
         </nav>
       </header>
 
@@ -84,7 +93,7 @@ export function Home() {
           <h1>Ghar jaisa khana,<br/><span>har din.</span></h1>
           <p>Fresh, comforting tiffin meals made with care—bringing a little taste of home to your everyday.</p>
           <div className="landing-hero-actions">
-            <Link className="landing-button landing-button-primary" to="/login">Get Started <ArrowRight size={17}/></Link>
+            <Link className="landing-button landing-button-primary" to={user ? workspacePath : '/login'}>{user ? 'Go to dashboard' : 'Get Started'} <ArrowRight size={17}/></Link>
             <a className="landing-button landing-button-light" href="#services">Explore Our Services</a>
           </div>
           <div className="landing-hero-note"><Check size={16}/> Lunch and dinner, simply organised</div>
@@ -93,7 +102,14 @@ export function Home() {
         <div className="landing-hero-visual">
           <div className="landing-image-frame">
             <img
-              src="https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1100&q=85"
+              // src="https://images.unsplash.com/photo-1631452180539-96aca7d48617?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+
+              // https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1100&q=85
+
+              // src="https://images.unsplash.com/photo-1680359873864-43e89bf248ac?q=80&w=1169&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+
+              src="homepic.jpg"
+
               alt="A freshly prepared homemade meal with vegetables and rice"
               fetchPriority="high"
               onError={event => { event.currentTarget.style.display = 'none'; }}
@@ -112,6 +128,9 @@ export function Home() {
 }
 
 export function Services() {
+  const { user } = useAuth();
+  const workspacePath = user?.role === 'ADMIN' ? '/admin' : '/dashboard';
+
   return (
     <section className="landing-services" id="services">
       <div className="landing-section-heading">
@@ -131,14 +150,16 @@ export function Services() {
       </div>
       <div className="landing-services-cta">
         <span className="landing-cta-icon"><Heart size={19}/></span>
-        <p><b>Ready for a taste of home?</b><span>Create an account to get started with your tiffin service.</span></p>
-        <Link to="/login">Get Started <ArrowRight size={16}/></Link>
+        <p><b>{user ? 'Welcome back!' : 'Ready for a taste of home?'}</b><span>{user ? 'Your tiffin account is ready whenever you are.' : 'Create an account to get started with your tiffin service.'}</span></p>
+        <Link to={user ? workspacePath : '/login'}>{user ? 'Open dashboard' : 'Get Started'} <ArrowRight size={16}/></Link>
       </div>
     </section>
   );
 }
 
 export function Footer() {
+  const { user } = useAuth();
+  const workspacePath = user?.role === 'ADMIN' ? '/admin' : '/dashboard';
   const year = new Date().getFullYear();
   const mapQuery = encodeURIComponent('Naveen Nagar, Moradabad, Uttar Pradesh, India');
 
@@ -170,8 +191,7 @@ export function Footer() {
           <h2>Quick links</h2>
           <a href="#home">Home</a>
           <a href="#services">Services</a>
-          <Link to="/login">Login</Link>
-          <Link to="/register">Signup</Link>
+          {user ? <Link to={workspacePath}>Dashboard</Link> : <><Link to="/login">Login</Link><Link to="/register">Signup</Link></>}
         </div>
       </div>
       <div className="landing-footer-bottom">
