@@ -15,6 +15,7 @@ import adminRoutes from './modules/admin/admin.routes.js';
 import { notFound, errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
+app.set('trust proxy', 1); 
 app.disable('x-powered-by');
 app.use(helmet());
 app.use(cors({ origin: env.clientOrigin, credentials: true }));
@@ -23,12 +24,12 @@ app.use(cookieParser());
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 
 app.get('/api/health', (req, res) => {
-	const databaseConnected = mongoose.connection.readyState === 1;
-	res.status(databaseConnected ? 200 : 503).json({
-		status: databaseConnected ? 'ok' : 'unavailable',
-		service: 'trivedi-tiffin-api',
-		database: databaseConnected ? 'connected' : 'disconnected'
-	});
+  const databaseConnected = mongoose.connection.readyState === 1;
+  res.status(databaseConnected ? 200 : 503).json({
+    status: databaseConnected ? 'ok' : 'unavailable',
+    service: 'trivedi-tiffin-api',
+    database: databaseConnected ? 'connected' : 'disconnected'
+  });
 });
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false });
 app.use('/api/v1/auth', authLimiter, authRoutes);

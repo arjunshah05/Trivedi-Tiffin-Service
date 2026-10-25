@@ -8,8 +8,11 @@ import { asyncHandler } from '../../shared/asyncHandler.js';
 import { requireAuth } from '../../middleware/auth.js';
 
 const router = Router();
+const isProduction = env.nodeEnv === 'production';
+
+const sameSite = isProduction ? 'none' : 'lax';
 const cookieOptions = () => ({
-  httpOnly: true, secure: env.nodeEnv === 'production', sameSite: 'lax',
+  httpOnly: true, secure: isProduction, sameSite,
   path: '/', maxAge: 24 * 60 * 60 * 1000
 });
 function setSession(res, user) {
@@ -44,7 +47,7 @@ router.post('/login', asyncHandler(async (req, res) => {
 }));
 
 router.post('/logout', (req, res) => {
-  res.clearCookie(env.cookieName, { httpOnly: true, secure: env.nodeEnv === 'production', sameSite: 'lax', path: '/' });
+  res.clearCookie(env.cookieName, { httpOnly: true, secure: isProduction, sameSite, path: '/' });
   res.json({ data: { loggedOut: true } });
 });
 
